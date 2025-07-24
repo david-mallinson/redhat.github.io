@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Hat New Hire Orientation Journey: Pac-Man Style</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the canvas and overall layout */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f0f0; /* Light gray background for the page */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+        }
+        canvas {
+            background-color: #c8c8c8; /* Main game background color (GRAY from Python) */
+            display: block;
+            border-radius: 15px; /* Rounded corners for the game canvas */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+            max-width: 95vw; /* Ensure it fits on smaller screens */
+            max-height: 95vh;
+            margin: auto; /* Center the canvas */
+        }
+        /* Styles for the pop-up */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .popup-content {
+            background-color: rgb(0, 50, 150); /* DARK_BLUE from Python */
+            border: 3px solid black;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 70%;
+            max-height: 70%;
+            overflow-y: auto; /* Enable scrolling for long content */
+            color: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .popup-title {
+            font-size: 2.5rem; /* font_large */
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .popup-text {
+            font-size: 1.5rem; /* font_medium */
+            line-height: 1.6;
+            margin-bottom: 30px;
+            flex-grow: 1; /* Allow content to take available space */
+        }
+        .popup-buttons {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .popup-button {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-align: center;
+            flex-grow: 1;
+            margin: 0 10px;
+        }
+        .popup-button.next {
+            background-color: rgb(0, 100, 255); /* BLUE */
+        }
+        .popup-button.next:hover {
+            background-color: rgb(0, 50, 150); /* DARK_BLUE */
+        }
+        .popup-button.close {
+            background-color: rgb(0, 200, 0); /* GREEN */
+        }
+        .popup-button.close:hover {
+            background-color: rgb(0, 150, 0); /* DARK_GREEN */
+        }
+        .popup-button.finish {
+            background-color: rgb(0, 200, 0); /* GREEN */
+        }
+        .popup-button.finish:hover {
+            background-color: rgb(0, 150, 0); /* DARK_GREEN */
+        }
+        .popup-button.tip-close {
+            background-color: rgb(255, 0, 0); /* RED */
+        }
+        .popup-button.tip-close:hover {
+            background-color: rgb(200, 0, 0); /* Darker RED */
+        }
+        .page-indicator {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1rem;
+            color: rgb(200, 200, 200); /* GRAY */
+        }
+
+        /* Game Over Screen */
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001; /* Above popups */
+            color: white;
+        }
+        .game-over-title {
+            font-size: 4.5rem; /* font_game_over */
+            font-weight: bold;
+            color: rgb(204, 0, 0); /* RED_HAT_RED */
+            margin-bottom: 20px;
+        }
+        .game-over-instructions {
+            font-size: 2rem; /* font_medium */
+            margin-top: 10px;
+        }
+
+        /* Loading Screen */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2rem;
+            z-index: 9999;
+        }
+        .spinner {
+            border: 8px solid #f3f3f3; /* Light grey */
+            border-top: 8px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading game assets...</p>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="popup-container" class="popup-overlay hidden">
+        <div class="popup-content">
+            <h2 id="popup-title" class="popup-title"></h2>
+            <p id="popup-text" class="popup-text"></p>
+            <div id="page-indicator" class="page-indicator hidden"></div>
+            <div class="popup-buttons">
+                <button id="close-button" class="popup-button close"></button>
+                <button id="next-button" class="popup-button next hidden">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="game-over-overlay hidden">
+        <h1 class="game-over-title">GAME OVER!</h1>
+        <p class="game-over-instructions">Press 'R' to Restart or 'Q' to Quit</p>
+    </div>
+
+    <script>
+        // Get the canvas element and its 2D rendering context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set initial canvas dimensions (will be responsive)
+        const SCREEN_WIDTH = 1000;
+        const SCREEN_HEIGHT = 700;
+        canvas.width = SCREEN_WIDTH;
+        canvas.height = SCREEN_HEIGHT;
+
+        // Colors (converted from Python RGB tuples to CSS color strings)
+        const WHITE = 'rgb(255, 255, 255)';
+        const BLACK = 'rgb(0, 0, 0)';
+        const GRAY = 'rgb(200, 200, 200)'; // Main background color
+        const BLUE = 'rgb(0, 100, 255)';
+        const DARK_BLUE = 'rgb(0, 50, 150)';
+        const GREEN = 'rgb(0, 200, 0)';
+        const DARK_GREEN = 'rgb(0, 150, 0)';
+        const RED = 'rgb(255, 0, 0)';
+        const YELLOW = 'rgb(255, 255, 0)'; // Pac-Man color (fallback)
+        const ORANGE = 'rgb(255, 165, 0)';
+        const PURPLE = 'rgb(128, 0, 128)';
+        const RED_HAT_RED = 'rgb(204, 0, 0)'; // A common Red Hat red
+        const PELLET_COLOR = YELLOW; // Color for pellets
+        const GHOST_COLOR = 'rgb(0, 0, 200)'; // Darker blue for ghosts
+        const ARROW_COLOR = 'rgb(255, 200, 0)'; // Gold color for the unlock arrow
+        const MAZE_WALL_COLOR = BLACK; // Color for maze walls
+
+        // Game Constants
+        const WALL_THICKNESS = 20; // Global wall thickness
+        const PACMAN_RADIUS = 15; // Radius for collision and general size reference
+        const MODULE_RADIUS = 30; // Smaller module radius to fit maze paths
+        const PELLET_RADIUS = 4; // Smaller pellet radius
+
+        // Fonts (Canvas uses CSS-like font strings)
+        const fontLarge = 'bold 48px Inter, sans-serif';
+        const fontMedium = 'bold 36px Inter, sans-serif';
+        const fontSmall = 'bold 24px Inter, sans-serif';
+        const fontTitle = 'bold 60px Inter, sans-serif'; // For Week titles
+        const fontGhostLabel = 'bold 18px Inter, sans-serif'; // Smaller font for ghost labels
+        const fontGameOver = 'bold 72px Inter, sans-serif';
+
+        // Player Sprite Setup (Red Hat)
+        let HAT_SPRITE = new Image();
+        let hatSpriteLoaded = false;
+        HAT_SPRITE.onload = () => {
+            hatSpriteLoaded = true;
+            document.getElementById('loading-overlay').classList.add('hidden'); // Hide loading overlay
+            // Start the game loop after the image is loaded
+            gameLoop();
+        };
+        HAT_SPRITE.onerror = () => {
+            console.error("Could not load Red Hat image. Player will be a yellow circle instead.");
+            hatSpriteLoaded = true; // Still mark as loaded to proceed
+            document.getElementById('loading-overlay').classList.add('hidden'); // Hide loading overlay
+            gameLoop();
+        };
+        // Use a placeholder image URL for the Red Hat logo.
+        // Replace this with a real URL if you have one.
+        HAT_SPRITE.src = 'https://placehold.co/60x60/FF0000/FFFFFF?text=RH'; // Placeholder image
+
+        // --- Utility Functions ---
+        // Simple Rect class for collision detection
+        class Rect {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.left = x;
+                this.top = y;
+                this.right = x + width;
+                this.bottom = y + height;
+            }
+
+            // Checks if this rectangle overlaps with another rectangle
+            colliderect(otherRect) {
+                return this.right > otherRect.left &&
+                       this.left < otherRect.right &&
+                       this.bottom > otherRect.top &&
+                       this.top < otherRect.bottom;
+            }
+        }
+
+        // --- PacMan Class (Player) ---
+        class PacMan {
+            constructor(x, y, radius, color, initialLives, sprite = null) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.speed = 5; // Adjusted speed for maze navigation
+                this.lives = initialLives;
+                this.maxLives = initialLives;
+                this.currentDirection = 'NONE'; // 'UP', 'DOWN', 'LEFT', 'RIGHT', 'NONE'
+                this.desiredDirection = 'NONE';
+                this.sprite = sprite; // Store the loaded sprite
+            }
+
+            draw(ctx) {
+                if (this.sprite && hatSpriteLoaded) {
+                    // Calculate top-left corner to center the sprite on this.x, this.y
+                    const spriteSize = this.radius * 2.5; // Slightly larger for better visibility
+                    const drawX = this.x - spriteSize / 2;
+                    const drawY = this.y - spriteSize / 2;
+                    ctx.drawImage(this.sprite, drawX, drawY, spriteSize, spriteSize);
+                } else {
+                    // Fallback to drawing a circle if sprite not loaded
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            getRect() {
+                // For collision detection, use a bounding box based on radius
+                return new Rect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+            }
+
+            move(walls) {
+                // First, try to change to desired direction
+                if (this.desiredDirection !== 'NONE') {
+                    let tempX = this.x;
+                    let tempY = this.y;
+                    if (this.desiredDirection === 'UP') tempY -= this.speed;
+                    else if (this.desiredDirection === 'DOWN') tempY += this.speed;
+                    else if (this.desiredDirection === 'LEFT') tempX -= this.speed;
+                    else if (this.desiredDirection === 'RIGHT') tempX += this.speed;
+
+                    const tempRect = new Rect(tempX - this.radius, tempY - this.radius, this.radius * 2, this.radius * 2);
+                    let canChangeDirection = true;
+                    for (const wall of walls) {
+                        if (tempRect.colliderect(wall)) {
+                            canChangeDirection = false;
+                            break;
+                        }
+                    }
+                    if (canChangeDirection) {
+                        this.currentDirection = this.desiredDirection;
+                        this.desiredDirection = 'NONE'; // Reset desired after successful change
+                    }
+                }
+
+                // Then, move in current direction
+                let newX = this.x;
+                let newY = this.y;
+                if (this.currentDirection === 'UP') newY -= this.speed;
+                else if (this.currentDirection === 'DOWN') newY += this.speed;
+                else if (this.currentDirection === 'LEFT') newX -= this.speed;
+                else if (this.currentDirection === 'RIGHT') newX += this.speed;
+
+                // Check for collisions with walls for the current movement
+                const newRect = new Rect(newX - this.radius, newY - this.radius, this.radius * 2, this.radius * 2);
+                let collidedWithWall = false;
+                for (const wall of walls) {
+                    if (newRect.colliderect(wall)) {
+                        collidedWithWall = true;
+                        break;
+                    }
+                }
+
+                if (!collidedWithWall) {
+                    this.x = newX;
+                    this.y = newY;
+                } else {
+                    // If collided, stop movement in this direction
+                    this.currentDirection = 'NONE';
+                }
+
+                // Keep Pac-Man within screen boundaries (outer walls of the maze should handle this mostly)
+                this.x = Math.max(this.radius, Math.min(this.x, SCREEN_WIDTH - this.radius));
+                this.y = Math.max(this.radius, Math.min(this.y, SCREEN_HEIGHT - this.radius));
+            }
+
+            loseLife() {
+                this.lives -= 1;
+                console.log(`Pac-Man hit! Lives: ${this.lives}`);
+            }
+        }
+
+        // --- Ghost Class (NPC) ---
+        class Ghost {
+            constructor(x, y, radius, color, targetPacman, label = "Ghost", walls = null) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.speed = Math.random() * (1.5 - 0.8) + 0.8; // Adjusted speed range for slower movement
+                this.targetPacman = targetPacman; // Reference to the player's PacMan
+                this.active = true;
+                this.label = label; // Label for the ghost
+                this.directionChangeCooldown = 800; // Milliseconds between AI direction changes (increased for less frequent changes)
+                this.lastDirectionChangeTime = Date.now();
+                this.currentDirection = 'NONE'; // Initialize current_direction
+
+                if (walls !== null) { // Ensure walls are provided before choosing initial direction
+                    this._chooseNewDirection(walls); // Set initial direction
+                }
+            }
+
+            draw(ctx) {
+                if (!this.active) return;
+
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = BLACK;
+                ctx.lineWidth = 2;
+                ctx.stroke(); // Border
+
+                // Draw ghost label
+                ctx.font = fontGhostLabel;
+                ctx.fillStyle = WHITE;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.label, this.x, this.y + this.radius + 10); // Below the ghost
+            }
+
+            getRect() {
+                return new Rect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+            }
+
+            move(walls) {
+                if (!this.active) return;
+
+                const currentTime = Date.now();
+                if (currentTime - this.lastDirectionChangeTime > this.directionChangeCooldown) {
+                    this.lastDirectionChangeTime = currentTime;
+                    this._chooseNewDirection(walls); // AI for direction
+                }
+
+                let newX = this.x;
+                let newY = this.y;
+                if (this.currentDirection === 'UP') newY -= this.speed;
+                else if (this.currentDirection === 'DOWN') newY += this.speed;
+                else if (this.currentDirection === 'LEFT') newX -= this.speed;
+                else if (this.currentDirection === 'RIGHT') newX += this.speed;
+
+                // Check for collisions with walls for the current movement
+                const newRect = new Rect(newX - this.radius, newY - this.radius, this.radius * 2, this.radius * 2);
+                let collidedWithWall = false;
+                for (const wall of walls) {
+                    if (newRect.colliderect(wall)) {
+                        collidedWithWall = true;
+                        break;
+                    }
+                }
+
+                if (!collidedWithWall) {
+                    this.x = newX;
+                    this.y = newY;
+                } else {
+                    // If collided, choose a new random direction
+                    this._chooseNewDirection(walls);
+                }
+
+                // Basic AI: Try to move towards the player if possible
+                const dx = this.targetPacman.x - this.x;
+                const dy = this.targetPacman.y - this.y;
+
+                // Prioritize horizontal or vertical movement based on larger difference
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0) this._trySetDirection('RIGHT', walls);
+                    else this._trySetDirection('LEFT', walls);
+                    if (this.currentDirection === 'NONE') { // If primary failed, try secondary
+                        if (dy > 0) this._trySetDirection('DOWN', walls);
+                        else this._trySetDirection('UP', walls);
+                    }
+                } else {
+                    if (dy > 0) this._trySetDirection('DOWN', walls);
+                    else this._trySetDirection('UP', walls);
+                    if (this.currentDirection === 'NONE') { // If primary failed, try secondary
+                        if (dx > 0) this._trySetDirection('RIGHT', walls);
+                        else this._trySetDirection('LEFT', walls);
+                    }
+                }
+
+                // If still no direction, pick a random one
+                if (this.currentDirection === 'NONE') {
+                    this._chooseNewDirection(walls);
+                }
+            }
+
+            _trySetDirection(direction, walls) {
+                let tempX = this.x;
+                let tempY = this.y;
+                if (direction === 'UP') tempY -= this.speed;
+                else if (direction === 'DOWN') tempY += this.speed;
+                else if (direction === 'LEFT') tempX -= this.speed;
+                else if (direction === 'RIGHT') tempX += this.speed;
+
+                const tempRect = new Rect(tempX - this.radius, tempY - this.radius, this.radius * 2, this.radius * 2);
+                let canMove = true;
+                for (const wall of walls) {
+                    if (tempRect.colliderect(wall)) {
+                        canMove = false;
+                        break;
+                    }
+                }
+                if (canMove) {
+                    this.currentDirection = direction;
+                    return true;
+                }
+                return false;
+            }
+
+            _chooseNewDirection(walls) {
+                const possibleDirections = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+                // Shuffle array (Fisher-Yates)
+                for (let i = possibleDirections.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [possibleDirections[i], possibleDirections[j]] = [possibleDirections[j], possibleDirections[i]];
+                }
+                this.currentDirection = 'NONE';
+                for (const direction of possibleDirections) {
+                    if (this._trySetDirection(direction, walls)) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // --- Pellet Class ---
+        class Pellet {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.active = true;
+            }
+
+            draw(ctx) {
+                if (this.active) {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            getRect() {
+                return new Rect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+            }
+        }
+
+        // --- Module Class ---
+        class Module {
+            constructor(x, y, radius, label, content) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.label = label;
+                this.content = content; // List of strings, each a page of content
+                this.completed = false;
+            }
+
+            draw(ctx, active = false) {
+                const color = this.completed ? RED_HAT_RED : BLUE; // Use Red Hat Red for completed modules
+                const fillColor = active ? ORANGE : color; // Highlight if PacMan is colliding or clicked
+
+                ctx.fillStyle = fillColor;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = BLACK;
+                ctx.lineWidth = 2;
+                ctx.stroke(); // Border
+
+                // Render label
+                ctx.font = fontSmall;
+                ctx.fillStyle = WHITE;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.label, this.x, this.y + 8); // Adjust Y for vertical centering of text
+            }
+
+            isClicked(pos) {
+                // Check if mouse position is within the circle
+                const distance = Math.sqrt(Math.pow(pos.x - this.x, 2) + Math.pow(pos.y - this.y, 2));
+                return distance <= this.radius;
+            }
+
+            isColliding(pacmanRect) {
+                // Check collision between PacMan's bounding box and module's circle
+                // Find the closest point on the circle to the rectangle
+                const closestX = Math.max(pacmanRect.left, Math.min(this.x, pacmanRect.right));
+                const closestY = Math.max(pacmanRect.top, Math.min(this.y, pacmanRect.bottom));
+
+                // Calculate the distance between the closest point and the circle's center
+                const distanceX = this.x - closestX;
+                const distanceY = this.y - closestY;
+                const distance = Math.sqrt((distanceX * distanceX) + (distanceY * distanceY));
+
+                return distance < this.radius;
+            }
+        }
+
+        // --- PopUp Class (Managed by HTML/CSS for better accessibility and styling) ---
+        // This class will primarily manage the state and content of the HTML popup
+        class PopUp {
+            constructor(popupType, label, content) {
+                this.popupType = popupType; // 'module' or 'tip'
+                this.label = label;
+                this.contentPages = content;
+                this.currentPageIndex = 0;
+                this.isActive = true;
+                this.finishedLearning = false; // True when user clicks 'Finish'
+
+                this.popupContainer = document.getElementById('popup-container');
+                this.popupTitle = document.getElementById('popup-title');
+                this.popupText = document.getElementById('popup-text');
+                this.pageIndicator = document.getElementById('page-indicator');
+                this.nextButton = document.getElementById('next-button');
+                this.closeButton = document.getElementById('close-button');
+
+                this.nextButton.onclick = () => this.nextPage();
+                this.closeButton.onclick = () => this.closePopup();
+
+                this.updateContent();
+                this.popupContainer.classList.remove('hidden');
+            }
+
+            updateContent() {
+                this.popupTitle.textContent = this.label;
+                this.popupText.textContent = this.contentPages[this.currentPageIndex];
+
+                if (this.contentPages.length > 1) {
+                    this.pageIndicator.textContent = `Page ${this.currentPageIndex + 1}/${this.contentPages.length}`;
+                    this.pageIndicator.classList.remove('hidden');
+                } else {
+                    this.pageIndicator.classList.add('hidden');
+                }
+
+                if (this.popupType === 'module' && this.currentPageIndex < this.contentPages.length - 1) {
+                    this.nextButton.classList.remove('hidden');
+                    this.closeButton.textContent = "Close"; // Or "Back" if you want
+                    this.closeButton.classList.remove('finish', 'tip-close');
+                    this.closeButton.classList.add('close');
+                } else {
+                    this.nextButton.classList.add('hidden');
+                    this.closeButton.textContent = (this.popupType === 'module') ? "Finish" : "Close";
+                    this.closeButton.classList.remove('close');
+                    if (this.popupType === 'module') {
+                        this.closeButton.classList.remove('tip-close');
+                        this.closeButton.classList.add('finish');
+                    } else { // tip
+                        this.closeButton.classList.remove('finish');
+                        this.closeButton.classList.add('tip-close');
+                    }
+                }
+            }
+
+            nextPage() {
+                if (this.currentPageIndex < this.contentPages.length - 1) {
+                    this.currentPageIndex++;
+                    this.updateContent();
+                }
+            }
+
+            closePopup() {
+                this.isActive = false;
+                if (this.popupType === 'module') {
+                    this.finishedLearning = true;
+                }
+                this.popupContainer.classList.add('hidden');
+            }
+
+            isFinished() {
+                return this.finishedLearning;
+            }
+        }
+
+        // --- Maze Wall Generation ---
+        const TRANSITION_GAP_Y_START = SCREEN_HEIGHT / 2 - 50;
+        const TRANSITION_GAP_Y_END = SCREEN_HEIGHT / 2 + 50;
+        const TRANSITION_WIDTH = WALL_THICKNESS;
+
+        function createMazeWalls(weekNum, week2UnlockedStatus, week3UnlockedStatus) {
+            const walls = [];
+            // Outer boundary
+            walls.push(new Rect(50, 50, SCREEN_WIDTH - 100, WALL_THICKNESS)); // Top
+            walls.push(new Rect(50, SCREEN_HEIGHT - 50 - WALL_THICKNESS, SCREEN_WIDTH - 100, WALL_THICKNESS)); // Bottom
+            walls.push(new Rect(50, 50, WALL_THICKNESS, SCREEN_HEIGHT - 100)); // Left
+
+            // Right outer wall - conditional based on unlock status
+            if ((weekNum === 1 && week2UnlockedStatus) || (weekNum === 2 && week3UnlockedStatus)) {
+                // Draw top segment of the right wall
+                walls.push(new Rect(SCREEN_WIDTH - 50 - WALL_THICKNESS, 50, WALL_THICKNESS, TRANSITION_GAP_Y_START - 50));
+                // Draw bottom segment of the right wall
+                walls.push(new Rect(SCREEN_WIDTH - 50 - WALL_THICKNESS, TRANSITION_GAP_Y_END, WALL_THICKNESS, SCREEN_HEIGHT - 50 - TRANSITION_GAP_Y_END));
+                // The middle section is intentionally left out to create the gap
+            } else {
+                // Draw full right wall if not unlocked
+                walls.push(new Rect(SCREEN_WIDTH - 50 - WALL_THICKNESS, 50, WALL_THICKNESS, SCREEN_HEIGHT - 100));
+            }
+
+            if (weekNum === 1) {
+                // Inner walls for Week 1
+                walls.push(new Rect(150, 100, WALL_THICKNESS, 200));
+                walls.push(new Rect(150, 300, 200, WALL_THICKNESS));
+                walls.push(new Rect(350, 150, WALL_THICKNESS, 200));
+                walls.push(new Rect(200, 400, 300, WALL_THICKNESS));
+                walls.push(new Rect(500, 100, WALL_THICKNESS, 150));
+                walls.push(new Rect(500, 300, WALL_THICKNESS, 200));
+                walls.push(new Rect(400, 500, 250, WALL_THICKNESS));
+                walls.push(new Rect(650, 300, WALL_THICKNESS, 200));
+                walls.push(new Rect(700, 150, 100, WALL_THICKNESS));
+                walls.push(new Rect(800, 200, WALL_THICKNESS, 200));
+                walls.push(new Rect(700, 400, 150, WALL_THICKNESS));
+                walls.push(new Rect(600, 550, WALL_THICKNESS, 100));
+                walls.push(new Rect(750, 500, WALL_THICKNESS, 100));
+
+            } else if (weekNum === 2) {
+                // Inner walls for Week 2
+                walls.push(new Rect(100, 100, 200, WALL_THICKNESS));
+                walls.push(new Rect(100, 100, WALL_THICKNESS, 150));
+                walls.push(new Rect(300, 150, WALL_THICKNESS, 100));
+                walls.push(new Rect(150, 300, 250, WALL_THICKNESS));
+                walls.push(new Rect(400, 200, WALL_THICKNESS, 200));
+                walls.push(new Rect(200, 450, 250, WALL_THICKNESS));
+                walls.push(new Rect(450, 300, WALL_THICKNESS, 150));
+                walls.push(new Rect(500, 100, 150, WALL_THICKNESS));
+                walls.push(new Rect(650, 100, WALL_THICKNESS, 250));
+                walls.push(new Rect(500, 400, 200, WALL_THICKNESS));
+                walls.push(new Rect(700, 250, WALL_THICKNESS, 200));
+                walls.push(new Rect(750, 150, 100, WALL_THICKNESS));
+                walls.push(new Rect(850, 200, WALL_THICKNESS, 200));
+                walls.push(new Rect(750, 450, 100, WALL_THICKNESS));
+                walls.push(new Rect(550, 500, WALL_THICKNESS, 100));
+                walls.push(new Rect(600, 550, 200, WALL_THICKNESS));
+                walls.push(new Rect(800, 500, WALL_THICKNESS, 100));
+
+            } else if (weekNum === 3) {
+                // Week 3 is a more open "completion" area
+                // Minimal inner walls for Week 3
+                walls.push(new Rect(SCREEN_WIDTH / 2 - 100, 150, WALL_THICKNESS, 100));
+                walls.push(new Rect(SCREEN_WIDTH / 2 + 100, 150, WALL_THICKNESS, 100));
+                walls.push(new Rect(SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2, 400, WALL_THICKNESS));
+                walls.push(new Rect(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT - 250, WALL_THICKNESS, 100));
+                walls.push(new Rect(SCREEN_WIDTH / 2 + 100, SCREEN_HEIGHT - 250, WALL_THICKNESS, 100));
+            }
+            return walls;
+        }
+
+        // --- Game Setup Data ---
+        const PACMAN_INITIAL_LIVES = 10;
+
+        // Week 1 Modules
+        const week1Modules = [
+            new Module(100, 100, MODULE_RADIUS, "Day 1: Welcome!", [
+                "Welcome to Red Hat! We're thrilled to have you join our team.",
+                "At Red Hat, we believe in the power of open source and collaboration.",
+                "Your journey here will be filled with opportunities to learn, grow, and contribute.",
+                "This module is your first step in understanding what makes Red Hat unique.",
+                "--- [Conceptual Video Placeholder] ---",
+                "Imagine a welcome video playing here, introducing you to Red Hat's culture and mission.",
+                "Use WASD to move | SPACE or Click Module to Interact. Click 'Next' to continue."
+            ]),
+            new Module(300, 100, MODULE_RADIUS, "Day 2: Workday", [
+                "First, make sure you have completed all of your tasks in Workday.",
+                "It's crucial to update your information to ensure it includes Slack and Gemini.",
+                "Workday Link (conceptual): https://www.myworkday.com",
+                "Welcome to Module 2: Navigating Workday.",
+                "Workday is your central hub for HR, payroll, benefits, and more.",
+                "Key areas to explore: Personal Information, Pay, Benefits, and Time Off.",
+                "Learn how to submit expenses, request time off, and update your profile.",
+                "Familiarize yourself with the Workday interface for a smooth start."
+            ]),
+            new Module(800, 200, MODULE_RADIUS, "Day 3: Compliance", [
+                "Day 3: Compliance videos series and policies.",
+                "Understanding Red Hat's policies and compliance guidelines is essential.",
+                "These resources ensure a safe and ethical work environment for everyone.",
+                "Familiarize yourself with the key policies related to your role and Red Hat's operations."
+            ]),
+            new Module(250, 550, MODULE_RADIUS, "Day 4: Pay & Benefits", [
+                "Day 4: Pay and benefits.",
+                "This module covers important information regarding your compensation and benefits at Red Hat.",
+                "Learn about your pay schedule, health benefits, retirement plans, and other perks.",
+                "Ensure you understand how to access your pay stubs and manage your benefit elections."
+            ]),
+            new Module(700, 550, MODULE_RADIUS, "Day 5: Open Source", [
+                "Day 5: Introduction to Open Source.",
+                "Open source is at the core of everything we do at Red Hat.",
+                "This module will introduce you to the principles, philosophy, and importance of open source.",
+                "Understand how Red Hat contributes to and benefits from the open-source community."
+            ])
+        ];
+
+        // Week 2 Modules
+        const week2Modules = [
+            new Module(100, 100, MODULE_RADIUS, "Day 6: Culture", [
+                "Day 6: Red Hat Culture and Strategy.",
+                "Dive deeper into the unique culture that drives Red Hat.",
+                "Understand our strategic priorities and how your role contributes to our overall success.",
+                "Learn about our commitment to open collaboration and innovation."
+            ]),
+            new Module(450, 100, MODULE_RADIUS, "Day 7: Resources", [
+                "Day 7: Red Hat programs and resources.",
+                "Explore the various programs and resources available to you as a Red Hatter.",
+                "This includes learning platforms, employee assistance programs, and development opportunities.",
+                "Discover how to leverage these resources for your professional growth."
+            ]),
+            new Module(850, 300, MODULE_RADIUS, "Day 8: Products", [
+                "Day 8: Introduction to Red Hat products.",
+                "Get a more in-depth overview of Red Hat's product portfolio.",
+                "Understand the core functionalities and use cases of key products like OpenShift, Ansible, and RHEL.",
+                "This module provides a foundational understanding of what we build and offer."
+            ]),
+            new Module(200, 550, MODULE_RADIUS, "Day 9: Onboarding", [
+                "Day 9: Functional onboarding guides and resources.",
+                "This module provides specific guides and resources tailored to your functional role.",
+                "Access detailed information and tools to help you get up to speed in your specific team.",
+                "These resources are designed to ensure a smooth transition into your daily tasks."
+            ]),
+            new Module(700, 550, MODULE_RADIUS, "Day 10: Connection", [
+                "Day 10: Connection programs: Link-Up, ERG communities, mentoring program.",
+                "Discover opportunities to connect with your fellow Red Hatters.",
+                "Learn about Link-Up events, Employee Resource Group (ERG) communities, and mentoring programs.",
+                "Building connections is a vital part of the Red Hat experience."
+            ])
+        ];
+
+        // Week 3 Modules
+        const week3Modules = [
+            new Module(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100, MODULE_RADIUS * 1.5, "Enroll in NHCE", [
+                "This module is all about enrolling in New Hire Cultural Experiences (NHCE) and connecting to other Red Hatters.",
+                "NHCE events are designed to help you immerse yourself in Red Hat's unique culture.",
+                "Participate in various activities, workshops, and social gatherings.",
+                "Connect with colleagues from different teams and build your internal network.",
+                "These experiences are key to feeling at home and thriving within the Red Hat community!"
+            ]),
+            new Module(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 100, MODULE_RADIUS * 1.5, "Order Your Fedora!", [
+                "Congratulations! You've successfully completed your Red Hat New Hire Orientation journey!",
+                "As a true Red Hatter, it's time to claim your iconic Red Hat Fedora!",
+                "Steps to order:",
+                "1. Visit the Red Hat Swag Store (conceptual link: https://swag.redhat.com)",
+                "2. Navigate to the 'New Hire' or 'Welcome Kit' section.",
+                "3. Select your size and preferred style of Fedora.",
+                "4. Place your order and proudly wear your new Red Hat!",
+                "Thank you for completing the orientation. We wish you a fantastic career at Red Hat!"
+            ])
+        ];
+
+        // Labels for enemy NPCs (Ghosts)
+        const GHOST_LABELS = [
+            "Process Overload",
+            "Information Overload",
+            "Isolation",
+            "Impostor Syndrome",
+            "Technical Jargon",
+            "Meeting Fatigue",
+            "Decision Paralysis",
+            "Email Avalanche",
+            "Context Switching"
+        ];
+
+        // Tips for avoiding ghosts
+        const GHOST_AVOIDANCE_TIPS = [
+            "Tip: Keep moving! Ghosts will struggle to corner you if you're constantly on the move.",
+            "Tip: Use the maze walls to your advantage. Create distance between yourself and the ghosts.",
+            "Tip: Observe ghost movement patterns. Some might be more predictable than others!",
+            "Tip: Prioritize collecting pellets and reaching modules before ghosts get too close.",
+            "Tip: If a ghost is blocking your path, try to lure it away by moving in a different direction.",
+            "Tip: Don't get trapped in dead ends! Always have an escape route in mind."
+        ];
+
+        function generatePellets(mazeWalls, modules, pelletRadius, padding = 10) {
+            const pellets = [];
+            // Define the general playable area within the outer maze walls
+            const minX = 50 + WALL_THICKNESS + padding;
+            const maxX = SCREEN_WIDTH - 50 - WALL_THICKNESS - padding;
+            const minY = 50 + WALL_THICKNESS + padding;
+            const maxY = SCREEN_HEIGHT - 50 - WALL_THICKNESS - padding;
+
+            // Create a grid of potential pellet positions
+            const gridSize = pelletRadius * 10; // Increased spacing for fewer pellets
+            for (let x = Math.floor(minX); x < maxX; x += gridSize) {
+                for (let y = Math.floor(minY); y < maxY; y += gridSize) {
+                    const pelletRect = new Rect(x - pelletRadius, y - pelletRadius, pelletRadius * 2, pelletRadius * 2);
+
+                    // Check for collision with walls
+                    let collidesWithWall = false;
+                    for (const wall of mazeWalls) {
+                        if (pelletRect.colliderect(wall)) {
+                            collidesWithWall = true;
+                            break;
+                        }
+                    }
+
+                    // Check for collision with modules
+                    let collidesWithModule = false;
+                    for (const module of modules) {
+                        const moduleRect = new Rect(module.x - module.radius, module.y - module.radius, module.radius * 2, module.radius * 2);
+                        if (pelletRect.colliderect(moduleRect)) {
+                            collidesWithModule = true;
+                            break;
+                        }
+                    }
+
+                    if (!collidesWithWall && !collidesWithModule) {
+                        pellets.push(new Pellet(x, y, pelletRadius, PELLET_COLOR));
+                    }
+                }
+            }
+            return pellets;
+        }
+
+        // --- Game State Variables ---
+        let pacman;
+        let currentPopup = null;
+        let score = 0;
+        let ghosts = [];
+        const GHOST_SPAWN_COOLDOWN = 8000; // Milliseconds between ghost spawns (increased from 5000 to 8000)
+        let lastGhostSpawnTime = Date.now();
+
+        let currentWeek = 1; // Start at Week 1
+        let week2Unlocked = false;
+        let week3Unlocked = false; // New flag for Week 3 unlock
+        let gameOver = false;
+
+        let currentMazeWalls;
+        let week1Pellets;
+        let week2Pellets = []; // Will be generated when week 2 unlocks
+        let week3Pellets = []; // Will be generated when week 3 unlocks
+
+        // --- Game Initialization ---
+        function initializeGame() {
+            pacman = new PacMan(100, 350, PACMAN_RADIUS, YELLOW, PACMAN_INITIAL_LIVES, HAT_SPRITE);
+            score = 0;
+            currentWeek = 1;
+            week2Unlocked = false;
+            week3Unlocked = false;
+            gameOver = false;
+            currentPopup = null;
+            ghosts = [];
+            lastGhostSpawnTime = Date.now();
+
+            // Reset module completion status
+            [...week1Modules, ...week2Modules, ...week3Modules].forEach(module => module.completed = false);
+
+            currentMazeWalls = createMazeWalls(currentWeek, week2Unlocked, week3Unlocked);
+            week1Pellets = generatePellets(currentMazeWalls, week1Modules, PELLET_RADIUS);
+            week2Pellets = [];
+            week3Pellets = [];
+
+            document.getElementById('game-over-screen').classList.add('hidden');
+        }
+
+        function checkAllWeekModulesCompleted(weekModules) {
+            return weekModules.every(module => module.completed);
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('keydown', (e) => {
+            if (gameOver) {
+                if (e.key === 'r' || e.key === 'R') { // Restart
+                    initializeGame();
+                } else if (e.key === 'q' || e.key === 'Q') { // Quit
+                    // In a browser, "quitting" means closing the tab or navigating away.
+                    // For this example, we'll just stop the game loop visually.
+                    // In a real app, you might redirect or show a final message.
+                    cancelAnimationFrame(animationFrameId); // Stop the game loop
+                    console.log("Game Quit.");
+                }
+                return; // Skip further event processing if game over
+            }
+
+            if (currentPopup && currentPopup.isActive) {
+                // Pop-up handles its own events (buttons)
+                return;
+            }
+
+            // Handle player movement keys
+            if (e.key === 'w' || e.key === 'W') {
+                pacman.desiredDirection = 'UP';
+            } else if (e.key === 's' || e.key === 'S') {
+                pacman.desiredDirection = 'DOWN';
+            } else if (e.key === 'a' || e.key === 'A') {
+                pacman.desiredDirection = 'LEFT';
+            } else if (e.key === 'd' || e.key === 'D') {
+                pacman.desiredDirection = 'RIGHT';
+            } else if (e.key === ' ') { // Spacebar for interaction
+                let modulesToCheck = [];
+                if (currentWeek === 1) modulesToCheck = week1Modules;
+                else if (currentWeek === 2) modulesToCheck = week2Modules;
+                else if (currentWeek === 3) modulesToCheck = week3Modules;
+
+                for (const module of modulesToCheck) {
+                    if (module.isColliding(pacman.getRect()) && !module.completed) {
+                        currentPopup = new PopUp('module', module.label, module.content);
+                        break; // Only open one popup at a time
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (gameOver || (currentPopup && currentPopup.isActive)) return;
+
+            // Stop movement if key is released, unless another direction key is held
+            if (e.key === 'w' || e.key === 'W' && pacman.currentDirection === 'UP') {
+                pacman.currentDirection = 'NONE';
+            } else if (e.key === 's' || e.key === 'S' && pacman.currentDirection === 'DOWN') {
+                pacman.currentDirection = 'NONE';
+            } else if (e.key === 'a' || e.key === 'A' && pacman.currentDirection === 'LEFT') {
+                pacman.currentDirection = 'NONE';
+            } else if (e.key === 'd' || e.key === 'D' && pacman.currentDirection === 'RIGHT') {
+                pacman.currentDirection = 'NONE';
+            }
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameOver || (currentPopup && currentPopup.isActive)) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            let modulesToCheck = [];
+            if (currentWeek === 1) modulesToCheck = week1Modules;
+            else if (currentWeek === 2) modulesToCheck = week2Modules;
+            else if (currentWeek === 3) modulesToCheck = week3Modules;
+
+            for (const module of modulesToCheck) {
+                if (module.isClicked({ x: mouseX, y: mouseY }) && !module.completed) {
+                    currentPopup = new PopUp('module', module.label, module.content);
+                    break;
+                }
+            }
+        });
+
+        // --- Game Loop ---
+        let animationFrameId;
+
+        function gameLoop() {
+            // Update game logic (only if no pop-up is active and not game over)
+            if (!currentPopup && !gameOver) {
+                // Update Pac-Man movement
+                pacman.move(currentMazeWalls);
+
+                // Check for Week 2 unlock
+                if (currentWeek === 1 && !week2Unlocked) {
+                    if (checkAllWeekModulesCompleted(week1Modules)) {
+                        week2Unlocked = true;
+                        console.log("Week 2 Unlocked!");
+                        // Regenerate walls to include the new opening
+                        currentMazeWalls = createMazeWalls(currentWeek, week2Unlocked, week3Unlocked);
+                        week2Pellets = generatePellets(createMazeWalls(2, week2Unlocked, week3Unlocked), week2Modules, PELLET_RADIUS); // Generate pellets for Week 2
+                    }
+                }
+
+                // Transition to Week 2
+                // Check if PacMan is at the right edge and week 2 is unlocked
+                if (currentWeek === 1 && week2Unlocked && pacman.x + pacman.radius > SCREEN_WIDTH - 50 - TRANSITION_WIDTH) { // Near right edge
+                    if (pacman.y > TRANSITION_GAP_Y_START && pacman.y < TRANSITION_GAP_Y_END) { // In the gap
+                        currentWeek = 2;
+                        // Reset PacMan position for new screen, slightly inside left wall
+                        pacman.x = 50 + PACMAN_RADIUS + 20;
+                        pacman.y = SCREEN_HEIGHT / 2; // Center vertically
+                        pacman.currentDirection = 'NONE';
+                        pacman.desiredDirection = 'NONE';
+                        ghosts = []; // Clear any active ghosts
+                        currentMazeWalls = createMazeWalls(currentWeek, week2Unlocked, week3Unlocked); // Update maze walls
+                        console.log("Transitioned to Week 2!");
+                    }
+                }
+
+                // Check for Week 3 unlock
+                if (currentWeek === 2 && !week3Unlocked) {
+                    if (checkAllWeekModulesCompleted(week2Modules)) {
+                        week3Unlocked = true;
+                        console.log("Week 3 Unlocked!");
+                        // Regenerate walls to include the new opening
+                        currentMazeWalls = createMazeWalls(currentWeek, week2Unlocked, week3Unlocked);
+                        week3Pellets = generatePellets(createMazeWalls(3, week2Unlocked, week3Unlocked), week3Modules, PELLET_RADIUS); // Generate pellets for Week 3
+                    }
+                }
+
+                // Transition to Week 3
+                if (currentWeek === 2 && week3Unlocked && pacman.x + pacman.radius > SCREEN_WIDTH - 50 - TRANSITION_WIDTH) { // Near right edge
+                    if (pacman.y > TRANSITION_GAP_Y_START && pacman.y < TRANSITION_GAP_Y_END) { // In the gap
+                        currentWeek = 3;
+                        // Reset PacMan position for new screen
+                        pacman.x = 50 + PACMAN_RADIUS + 20;
+                        pacman.y = SCREEN_HEIGHT / 2; // Center vertically
+                        pacman.currentDirection = 'NONE';
+                        pacman.desiredDirection = 'NONE';
+                        ghosts = []; // Clear any active ghosts (no ghosts in Week 3)
+                        currentMazeWalls = createMazeWalls(currentWeek, week2Unlocked, week3Unlocked); // Update maze walls
+                        console.log("Transitioned to Week 3!");
+                    }
+                }
+
+                // Ghost spawning logic (only if not in Week 3)
+                if (currentWeek !== 3) {
+                    const currentTime = Date.now();
+                    if (currentTime - lastGhostSpawnTime > GHOST_SPAWN_COOLDOWN) {
+                        const selectedLabel = GHOST_LABELS[Math.floor(Math.random() * GHOST_LABELS.length)];
+
+                        // Determine spawn side (left or right of the maze area)
+                        const spawnSide = Math.random() < 0.5 ? 'left' : 'right';
+                        let spawnX;
+                        if (spawnSide === 'left') {
+                            spawnX = 50 + WALL_THICKNESS + PACMAN_RADIUS; // Just inside the left maze wall
+                        } else { // right
+                            spawnX = SCREEN_WIDTH - 50 - WALL_THICKNESS - PACMAN_RADIUS; // Just inside the right maze wall
+                        }
+
+                        // Random Y position within the maze
+                        const spawnY = Math.floor(Math.random() * (SCREEN_HEIGHT - 50 - WALL_THICKNESS - PACMAN_RADIUS - (50 + WALL_THICKNESS + PACMAN_RADIUS))) + (50 + WALL_THICKNESS + PACMAN_RADIUS);
+
+                        ghosts.push(new Ghost(spawnX, spawnY, PACMAN_RADIUS, GHOST_COLOR, pacman, selectedLabel, currentMazeWalls)); // Pass walls to Ghost init
+                        lastGhostSpawnTime = currentTime;
+                    }
+                }
+
+                // Update and manage ghosts (only if not in Week 3)
+                if (currentWeek !== 3) {
+                    for (let i = ghosts.length - 1; i >= 0; i--) {
+                        const ghost = ghosts[i];
+                        ghost.move(currentMazeWalls);
+                        if (!ghost.active) {
+                            ghosts.splice(i, 1); // Remove inactive ghosts
+                        }
+                    }
+                }
+
+                // Check ghost collision with Pac-Man
+                if (currentWeek !== 3) {
+                    for (let i = ghosts.length - 1; i >= 0; i--) {
+                        const ghost = ghosts[i];
+                        if (ghost.active && pacman.getRect().colliderect(ghost.getRect())) {
+                            pacman.loseLife();
+                            score = Math.max(0, score - 50); // Deduct points for being caught
+                            // Respawn Pac-Man at the adjusted spawn point
+                            pacman.x = 100;
+                            pacman.y = 350;
+                            pacman.currentDirection = 'NONE';
+                            pacman.desiredDirection = 'NONE';
+
+                            // Deactivate ghost temporarily or respawn it
+                            ghost.active = false; // Ghost disappears on collision
+                            console.log(`Pac-Man caught! New Score: ${score}`);
+
+                            // Show ghost avoidance tip popup
+                            if (!currentPopup) { // Only show if no other popup is active
+                                const tipContent = [GHOST_AVOIDANCE_TIPS[Math.floor(Math.random() * GHOST_AVOIDANCE_TIPS.length)]];
+                                currentPopup = new PopUp('tip', "Information Overload Tip!", tipContent);
+                            }
+
+                            if (pacman.lives <= 0) {
+                                gameOver = true;
+                                document.getElementById('game-over-screen').classList.remove('hidden');
+                            }
+                            break; // Only one ghost can hit Pac-Man at a time
+                        }
+                    }
+                }
+
+                // Collect pellets
+                let currentPellets = [];
+                if (currentWeek === 1) currentPellets = week1Pellets;
+                else if (currentWeek === 2) currentPellets = week2Pellets;
+                else if (currentWeek === 3) currentPellets = week3Pellets;
+
+                for (let i = currentPellets.length - 1; i >= 0; i--) {
+                    const pellet = currentPellets[i];
+                    if (pellet.active && pacman.getRect().colliderect(pellet.getRect())) {
+                        pellet.active = false;
+                        score += 10; // Points for collecting a pellet
+                        console.log(`Pellet collected! Score: ${score}`);
+                        currentPellets.splice(i, 1); // Remove collected pellet
+                    }
+                }
+            } else if (currentPopup && !currentPopup.isActive) {
+                // If popup just closed, process its completion
+                if (currentPopup.popupType === 'module' && currentPopup.isFinished()) {
+                    let modulesToCheck = [];
+                    if (currentWeek === 1) modulesToCheck = week1Modules;
+                    else if (currentWeek === 2) modulesToCheck = week2Modules;
+                    else if (currentWeek === 3) modulesToCheck = week3Modules;
+
+                    for (const module of modulesToCheck) {
+                        // Find the module that matches the content of the just-closed popup
+                        if (module.content === currentPopup.contentPages && !module.completed) {
+                            module.completed = true;
+                            score += 100; // Points for completing a module
+                            console.log(`Module '${module.label}' completed! Score: ${score}`);
+                            break;
+                        }
+                    }
+                }
+                currentPopup = null; // Officially close the popup in the game state
+            }
+
+
+            // --- Drawing ---
+            ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT); // Clear canvas
+            ctx.fillStyle = GRAY; // Background
+            ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            // Draw Week Title
+            ctx.font = fontTitle;
+            ctx.fillStyle = BLACK;
+            ctx.textAlign = 'center';
+            ctx.fillText(`Week ${currentWeek}`, SCREEN_WIDTH / 2, 30);
+
+            // Draw maze walls
+            for (const wall of currentMazeWalls) {
+                ctx.fillStyle = MAZE_WALL_COLOR;
+                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            }
+
+            // Draw modules based on current week
+            let activeModules = [];
+            if (currentWeek === 1) activeModules = week1Modules;
+            else if (currentWeek === 2) activeModules = week2Modules;
+            else if (currentWeek === 3) activeModules = week3Modules;
+
+            for (const module of activeModules) {
+                let isActiveModule = false;
+                if (!currentPopup) { // Only highlight if no popup is open
+                    if (module.isColliding(pacman.getRect()) && !module.completed) {
+                        isActiveModule = true;
+                        // Draw "Press SPACE to learn" message
+                        ctx.font = fontSmall;
+                        ctx.fillStyle = BLACK;
+                        ctx.textAlign = 'center';
+                        ctx.fillText("Press SPACE or Click to Learn", module.x, module.y + module.radius + 20);
+                    }
+                }
+                module.draw(ctx, isActiveModule);
+            }
+
+            // Draw pellets
+            let currentPellets = [];
+            if (currentWeek === 1) currentPellets = week1Pellets;
+            else if (currentWeek === 2) currentPellets = week2Pellets;
+            else if (currentWeek === 3) currentPellets = week3Pellets;
+
+            for (const pellet of currentPellets) {
+                pellet.draw(ctx);
+            }
+
+            // Draw unlock arrow if applicable
+            if ((currentWeek === 1 && week2Unlocked) || (currentWeek === 2 && week3Unlocked)) {
+                const arrowStart = { x: SCREEN_WIDTH - 70, y: SCREEN_HEIGHT / 2 };
+                const arrowEnd = { x: SCREEN_WIDTH - 20, y: SCREEN_HEIGHT / 2 };
+                ctx.strokeStyle = ARROW_COLOR;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(arrowStart.x, arrowStart.y);
+                ctx.lineTo(arrowEnd.x, arrowEnd.y);
+                ctx.stroke();
+                // Draw arrowhead
+                ctx.beginPath();
+                ctx.moveTo(arrowEnd.x, arrowEnd.y);
+                ctx.lineTo(arrowEnd.x - 15, arrowEnd.y - 10);
+                ctx.lineTo(arrowEnd.x - 15, arrowEnd.y + 10);
+                ctx.closePath();
+                ctx.fillStyle = ARROW_COLOR;
+                ctx.fill();
+                // Add text for the arrow
+                const nextWeekText = `Week ${currentWeek + 1}`;
+                ctx.font = fontSmall;
+                ctx.fillStyle = ARROW_COLOR;
+                ctx.textAlign = 'center';
+                ctx.fillText(nextWeekText, SCREEN_WIDTH - 45, SCREEN_HEIGHT / 2 - 30);
+            }
+
+            // Draw Pac-Man
+            pacman.draw(ctx);
+
+            // Draw ghosts (only if not in Week 3)
+            if (currentWeek !== 3) {
+                for (const ghost of ghosts) {
+                    ghost.draw(ctx);
+                }
+            }
+
+            // Draw score
+            ctx.font = fontMedium;
+            ctx.fillStyle = BLACK;
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+
+            // Draw player lives (Pac-Man icons) (only if not in Week 3)
+            if (currentWeek !== 3) {
+                const lifeXStart = SCREEN_WIDTH - 100;
+                const lifeY = 10;
+                const lifeRadius = 10;
+                for (let i = 0; i < pacman.lives; i++) {
+                    if (HAT_SPRITE && hatSpriteLoaded) {
+                        const lifeSpriteSize = lifeRadius * 2;
+                        const drawX = lifeXStart + i * (lifeRadius * 2 + 5);
+                        const drawY = lifeY;
+                        ctx.drawImage(HAT_SPRITE, drawX, drawY, lifeSpriteSize, lifeSpriteSize);
+                    } else {
+                        ctx.fillStyle = YELLOW;
+                        ctx.beginPath();
+                        ctx.arc(lifeXStart + i * (lifeRadius * 2 + 5) + lifeRadius, lifeY + lifeRadius, lifeRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // Draw instructions
+            ctx.font = fontSmall;
+            ctx.fillStyle = BLACK;
+            ctx.textAlign = 'left';
+            ctx.fillText("WASD: Move | SPACE or Click Module: Interact | Avoid Ghosts!", 10, SCREEN_HEIGHT - 10);
+
+            // Request next frame
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize the game when the script loads
+        // The gameLoop will only start after the HAT_SPRITE is loaded (or fails to load)
+        initializeGame();
+    </script>
+</body>
+</html>
+
